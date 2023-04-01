@@ -33,8 +33,9 @@ vlt_mdir()
 # $1 Name of the vault
 vlt_make_mountpoint()
 {
-  [ ! -d "$(vlt_mdir "$1")" ] && \
+  if [ ! -d "$(vlt_mdir "$1")" ] ; then
     mkdir "$(vlt_mdir "$1")"
+  fi
   echo "$(vlt_mdir "$1")"
 }
 
@@ -42,11 +43,13 @@ vlt_make_mountpoint()
 # $1 Name of the vault
 vlt_print_mapper_name()
 {
-  [ ! -f "$(vlt_pth "$1")" ] &&  \
+  if [ ! -f "$(vlt_pth "$1")" ] ; then
     vlt_die "File \"$(vlt_pth "$1")\" does not exist"
+  fi
   echo "$proj-$1-$(cryptsetup luksUUID "$(vlt_pth "$1")" | md5sum | head -c 10)"
-  [ "$?" != 0 ] &&  \
+  if [ "$?" != 0 ] ; then
     vlt_die "File \"$(vlt_pth "$1")\" is not valid vault"
+  fi
 }
 
 ## Format vault file-system and mount it
@@ -55,7 +58,7 @@ vlt_print_mapper_name()
 vlt_fs_format_and_unlock()
 {
   sudo cryptsetup luksOpen "$(vlt_pth "$1")" "$2"
-  sudo mkfs $fsparam "/dev/mapper/$2"
+  sudo mkfs -q $fsparam "/dev/mapper/$2"
   sudo mount "/dev/mapper/$2" "$(vlt_make_mountpoint "$1")"
   sudo chown $(id -u):$(id -g) "$(vlt_mdir "$1")"
 }
@@ -81,8 +84,9 @@ vlt_lock()
 # $2 Size of the vault to be created
 vlt_create()
 {
-  [ -f "$(vlt_pth "$1")" ] &&  \
+  if [ -f "$(vlt_pth "$1")" ] ; then
     vlt_die "File \"$(vlt_pth "$1")\" already exists"
+  fi
 
   dd if=/dev/random of="$(vlt_pth "$1")" bs=1M count=$2 status=none
   cryptsetup luksFormat -qy "$(vlt_pth "$1")"
@@ -95,8 +99,10 @@ print_help ()
   echo "   OR: $0 -h"
   echo ""
   echo "  -h          Print this message"
-  echo "  -n NAME     Specify the name of the vault"
+  echo "  -u          Unlock the vault"
+  echo "  -l          Lock the vault"
   echo "  -c SIZE     Create new vault of specified size in MiB"
+  echo "  -n NAME     Specify the name of the vault"
 }
 
 # Default values of control variables
